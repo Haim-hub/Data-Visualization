@@ -11,24 +11,24 @@ import matplotlib.ticker as ticker
 import matplotlib.pyplot as plt
 import dayplot as dp
 import pandas as pd
+from shinyswatch import theme
 
-ui.page_opts(title="UFO Sightings dashboard", fillable=True)
-
+ui.page_opts(title="UFO Sightings dashboard", fillable=True, theme=theme.darkly)
 
 
 
 
 with ui.navset_pill(id="tab"):  
     with ui.nav_panel("Year"):
-        with ui.layout_column_wrap(fill=False):
-            with ui.value_box(showcase=icon_svg("satellite-dish")):
+        with ui.layout_column_wrap(fill=True):
+            with ui.value_box(showcase=icon_svg("satellite-dish"), fill=True, width="auto"):
                 "Number of Sightings"
                 @render.text
                 def num_sigthings():
                     return year_df().shape[0]
                 
             with ui.card():
-                ui.input_numeric("year", "Year input", 2000, min=1906, max=2014)  
+                ui.input_numeric("year", "Year input", 2000, min=1906, max=2014,  width="auto")  
 
         with ui.layout_column_wrap(fill=False):
             with ui.card(full_screen=True):
@@ -42,8 +42,12 @@ with ui.navset_pill(id="tab"):
                         values=year_df().values,
                         start_date=f"{input.year()}-01-01",
                         end_date=f"{input.year()}-12-31",
+                        day_kws={"color": "white"},
+                        month_kws={"color": "white"},
                         ax=ax,
                     )
+                    fig.set_facecolor("#2d2d2d")
+                    ax.set_facecolor("#2d2d2d")
             
                 
     with ui.nav_panel("A"):
