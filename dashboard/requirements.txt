@@ -5,3 +5,4 @@ pandas
 kagglehub[pandas-datasets]
 matplotlib
 dayplot
+shinyswatch
