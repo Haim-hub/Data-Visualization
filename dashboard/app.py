@@ -8,21 +8,44 @@ from shared import app_dir, df, salary_df
 from shiny import reactive
 from shiny.express import input, render, ui
 import matplotlib.ticker as ticker
+import matplotlib.pyplot as plt
+import dayplot as dp
+import pandas as pd
 
 ui.page_opts(title="UFO Sightings dashboard", fillable=True)
 
 
 
-#with ui.sidebar(title="Filter controls"):
-#    ui.input_slider("mass", "Mass", 2000, 6000, 6000)
-#    ui.input_checkbox_group(
-#        "species",
-#        "Species",
-#        ["Adelie", "Gentoo", "Chinstrap"],
-#        selected=["Adelie", "Gentoo", "Chinstrap"],
-#    )
+
 
 with ui.navset_pill(id="tab"):  
+    with ui.nav_panel("Year"):
+        with ui.layout_column_wrap(fill=False):
+            with ui.value_box(showcase=icon_svg("satellite-dish")):
+                "Number of Sightings"
+                @render.text
+                def num_sigthings():
+                    return year_df().shape[0]
+                
+            with ui.card():
+                ui.input_numeric("year", "Year input", 2000, min=1906, max=2014)  
+
+        with ui.layout_column_wrap(fill=False):
+            with ui.card(full_screen=True):
+                ui.card_header("Sights per day heatmap")
+
+                @render.plot
+                def heatmap():
+                    fig, ax = plt.subplots(figsize=(15, 6), dpi=55)
+                    dp.calendar(
+                        dates=year_df().index,
+                        values=year_df().values,
+                        start_date=f"{input.year()}-01-01",
+                        end_date=f"{input.year()}-12-31",
+                        ax=ax,
+                    )
+            
+                
     with ui.nav_panel("A"):
         with ui.layout_column_wrap(fill=False):
             with ui.value_box(showcase=icon_svg("satellite-dish")):
@@ -46,7 +69,6 @@ with ui.navset_pill(id="tab"):
                 @render.text
                 def bill_depth():
                     return f"{year_df()['Unnamed: 0'].mean():.1f} Sightings"
-
 
         with ui.layout_columns():
             with ui.card(full_screen=True):
@@ -91,5 +113,6 @@ def filtered_df():
 
 @reactive.calc
 def year_df():
-    filt_df = df.groupby(by="Year").count()
-    return filt_df
+    filt_df = df[df["Year"] == input.year()]
+    filt_df['Date_time'] = pd.to_datetime(filt_df['Date_time']).dt.date
+    return filt_df.groupby(by="Date_time").size()
