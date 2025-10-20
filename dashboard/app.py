@@ -3,7 +3,7 @@ import re
 from faicons import icon_svg
 
 # Import data from shared.py
-from shared import app_dir, df, salary_df
+from shared import app_dir, df
 
 from shiny import reactive
 from shiny.express import input, render, ui
@@ -14,7 +14,7 @@ import pandas as pd
 import plotly.express as px
 from shinyswatch import theme
 
-ui.page_opts(title="UFO Sightings dashboard", fillable=True, theme=theme.darkly)
+ui.page_opts(title="NYC Motor Vehicle Collisions dashboard", fillable=True, theme=theme.darkly)
 
 
 
@@ -23,13 +23,13 @@ with ui.navset_pill(id="tab"):
     with ui.nav_panel("Year"):
         with ui.layout_column_wrap(fill=True):
             with ui.value_box(showcase=icon_svg("satellite-dish"), fill=True, width="auto"):
-                "Number of Sightings"
+                "Number of Crashes"
                 @render.text
                 def num_sigthings():
-                    return year_df().shape[0]
+                    return year_df()["count"].sum()
                 
             with ui.card():
-                ui.input_numeric("year", "Year input", 2000, min=1906, max=2014,  width="auto")  
+                ui.input_numeric("year", "Year input", 2019, min=2012, max=2025,  width="auto")  
 
         with ui.layout_column_wrap(fill=False):
             with ui.card(full_screen=True):
@@ -38,9 +38,13 @@ with ui.navset_pill(id="tab"):
                 @render.plot
                 def heatmap():
                     fig, ax = plt.subplots(figsize=(15, 6), dpi=55)
+                    # Extract dates and values from the grouped data
+                    dates = year_df()["CRASH_DATE"]
+                    values = year_df()["count"]
+
                     dp.calendar(
-                        dates=year_df().index,
-                        values=year_df().values,
+                        dates=dates,
+                        values=values,
                         start_date=f"{input.year()}-01-01",
                         end_date=f"{input.year()}-12-31",
                         day_kws={"color": "white"},
@@ -49,6 +53,7 @@ with ui.navset_pill(id="tab"):
                     )
                     fig.set_facecolor("#2d2d2d")
                     ax.set_facecolor("#2d2d2d")
+                    return fig
             #with ui.card(full_screen=True):
             #    ui.card_header("Sights per day heatmap")
 #
@@ -125,13 +130,11 @@ def filtered_df():
 
 @reactive.calc
 def year_df():
-    filt_df = df[df["Year"] == input.year()]
-    filt_df['Date_time'] = pd.to_datetime(filt_df['Date_time']).dt.date
-    return filt_df.groupby(by="Date_time").size()
+    # Convert CRASH_DATE to datetime if it's not already
+    df["CRASH_DATE"] = pd.to_datetime(df["CRASH_DATE"])
+    # Filter by year
+    filt_df = df[df["CRASH_DATE"].dt.year == input.year()]
+    # Group by date and count occurrences
+    grouped = filt_df.groupby(filt_df["CRASH_DATE"].dt.date).size().reset_index(name="count")
+    return grouped
 
-@reactive.calc
-def country_df():
-    filt_df = df[df["Year"] == input.year()]
-    filt_df['Country'] = pd.to_datetime(filt_df['Country']).dt.date
-    print(filt_df.groupby(by="Country").size())
-    return filt_df.groupby(by="Country").size()
