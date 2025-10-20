@@ -11,6 +11,7 @@ import matplotlib.ticker as ticker
 import matplotlib.pyplot as plt
 import dayplot as dp
 import pandas as pd
+import plotly.express as px
 from shinyswatch import theme
 
 ui.page_opts(title="UFO Sightings dashboard", fillable=True, theme=theme.darkly)
@@ -48,6 +49,13 @@ with ui.navset_pill(id="tab"):
                     )
                     fig.set_facecolor("#2d2d2d")
                     ax.set_facecolor("#2d2d2d")
+            #with ui.card(full_screen=True):
+            #    ui.card_header("Sights per day heatmap")
+#
+            #    @render.plot
+            #    def histogram():
+            #        fig = px.histogram(country_df(), x=)
+            #        fig.update_xaxes(type='category')
             
                 
     with ui.nav_panel("A"):
@@ -120,3 +128,10 @@ def year_df():
     filt_df = df[df["Year"] == input.year()]
     filt_df['Date_time'] = pd.to_datetime(filt_df['Date_time']).dt.date
     return filt_df.groupby(by="Date_time").size()
+
+@reactive.calc
+def country_df():
+    filt_df = df[df["Year"] == input.year()]
+    filt_df['Country'] = pd.to_datetime(filt_df['Country']).dt.date
+    print(filt_df.groupby(by="Country").size())
+    return filt_df.groupby(by="Country").size()
