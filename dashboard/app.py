@@ -4,7 +4,7 @@ from faicons import icon_svg
 
 # Import data from shared.py
 from shared import app_dir, df
-from shinywidgets import render_widget 
+from shinywidgets import render_widget, render_plotly
 from shiny import reactive
 from shiny.express import input, render, ui
 import matplotlib.ticker as ticker
@@ -27,7 +27,7 @@ with ui.navset_pill(id="tab"):
             with ui.value_box(showcase=icon_svg("satellite-dish"), fill=True, width="auto"):
                 "Number of Crashes"
                 @render.text
-                def num_sigthings():
+                def injury_types():
                     return year_df()["count"].sum()
                 
             with ui.card():
@@ -81,61 +81,71 @@ with ui.navset_pill(id="tab"):
 
                         
                 
-    with ui.nav_panel("A"):
+    with ui.nav_panel("Injury"):
         with ui.layout_column_wrap(fill=False):
-            with ui.value_box(showcase=icon_svg("satellite-dish")):
-                "Number of Sightings"
-
-                @render.text
-                def count():
-                    return filtered_df().shape[0]
-                
-
-            with ui.value_box(showcase=icon_svg("hourglass-start")):
-                "Average Length of Encounter in Seconds"
-
-                @render.text
-                def bill_length():
-                    return f"{filtered_df()['length_of_encounter_seconds'].mean():.1f} seconds"
-                
-            with ui.value_box(showcase=icon_svg("calendar-days")):
-                "Average Sightings Per Year"
-
-                @render.text
-                def bill_depth():
-                    return f"{year_df()['Unnamed: 0'].mean():.1f} Sightings"
-
-        with ui.layout_columns():
             with ui.card(full_screen=True):
-                ui.card_header("Experience and Anual Base Pay")
+                ui.card_header("Types of resulting injury")
 
-                @render.plot
-                def length_depth():
-                    ax = sns.scatterplot(
-                        data=year_df(),
-                        x="Year",
-                        y="Unnamed: 0"
+                @render_plotly
+                def injury_plot():
+                    df_injured = df[df["BODILY_INJURY"] != "Does Not Apply"]
+                    injury_counts = (
+                        df_injured["BODILY_INJURY"]
+                        .dropna()
+                        .value_counts()
+                        .reset_index()
                     )
-                    # Force decimal notation
-                    ax.yaxis.set_major_formatter(ticker.ScalarFormatter(useOffset=False))
-                    ax.ticklabel_format(style='plain', axis='y')
-                    return ax
+
+                    injury_counts.columns = ["InjuryType", "Count"]
+                    fig = px.bar(
+                        injury_counts,
+                        x="InjuryType",
+                        y="Count",
+                        title="Distribution of Bodily Injury Types",
+                        text="Count",
+                    )
+                    fig.update_layout(xaxis_tickangle=45)
+
+                    return fig
 
             with ui.card(full_screen=True):
-                ui.card_header("UFO Sightings Data")
+                ui.card_header("Relationship between safety equipment and being yeeted")
+                @render_plotly
+                def safety_ejection_plot_card():
+                    relationship_counts = (
+                        df.groupby(["SAFETY_EQUIPMENT", "EJECTION"])
+                        .size()
+                        .reset_index(name='Count')
+                    )
 
-                @render.data_frame
-                def summary_statistics():
-                    cols = [
-                        "Date_time",
-                        "Country",
-                        "Region",
-                        "UFO_shape",
-                        "length_of_encounter_seconds",
-                    ]
-                    return render.DataGrid(filtered_df()[cols], filters=True)
+                    relationship_counts = relationship_counts.fillna("Unknown/Not Reported")
+
+                    fig = px.bar(
+                        relationship_counts,
+                        x="SAFETY_EQUIPMENT",
+                        y="Count",
+                        color="SAFETY_EQUIPMENT",
+                        barmode="group",
+                        title=f"Relationship Between Safety Equipment and Ejection Status",
+                        labels={
+                            "SAFETY_EQUIPMENT": "Safety Equipment Used",
+                            "EJECTION": "Ejection Status",
+                            "Count": "Number of Incidents"
+                        },
+                        height=500,
+                        template="plotly_white"
+                    )
+
+                    fig.update_layout(
+                        xaxis_tickangle=45,
+                        legend_title_text="Ejection Status"
+                    )
+
+                    return fig
                 
-    with ui.nav_panel("B"):
+                
+
+    with ui.nav_panel("AI"):
         with ui.value_box(showcase=icon_svg("satellite-dish"), fill=True, width="auto"):
                 "Number of Crashes"
                 @render.text
