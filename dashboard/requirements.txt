@@ -5,3 +5,5 @@ pandas
 matplotlib
 dayplot
 shinyswatch
+shinywidgets
+plotly-express
