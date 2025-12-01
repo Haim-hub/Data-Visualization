@@ -204,6 +204,7 @@ with ui.navset_pill(id="tab"):
                             y="Count",
                             text="Count",
                         )
+                        fig.update_traces(marker_color='orange')
                         fig.update_layout(
                             plot_bgcolor="rgba(0,0,0,0)",
                             paper_bgcolor="rgba(0,0,0,0)",
@@ -368,13 +369,19 @@ with ui.navset_pill(id="tab"):
                             )
 
                         injury_df = pd.DataFrame(injury_data)
+
+                        injury_colors = {
+                            "Injured": "orange",
+                            "Killed": "red",
+                        }
+
                         fig = px.bar(
                             injury_df,
                             x="Age Group",
                             y=["Injured", "Killed"],
                             title="Injured vs Killed by Age Group",
                             barmode="group",
-                            color="variable",
+                            color_discrete_map=injury_colors,
                             labels={
                                 "value": "Number of People",
                                 "variable": "Injury Status",
@@ -384,6 +391,9 @@ with ui.navset_pill(id="tab"):
 
                         yaxis_type = "log" if scale_state.get() else "linear"
                         fig.update_layout(
+                            plot_bgcolor='rgba(0,0,0,0)',
+                            paper_bgcolor='rgba(0,0,0,0)',
+                            font_color='white',
                             xaxis_tickangle=45,
                             yaxis_type=yaxis_type,
                             legend_title_text="Injury Status ",
@@ -447,6 +457,9 @@ with ui.navset_pill(id="tab"):
                         )
 
                         fig.update_layout(
+                            plot_bgcolor='rgba(0,0,0,0)',
+                            paper_bgcolor='rgba(0,0,0,0)',
+                            font_color='white',
                             xaxis_tickangle=45,
                             legend_title_text="Injury Status",
                             yaxis_type="log",
