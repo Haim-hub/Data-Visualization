@@ -9,33 +9,50 @@ from shiny import reactive
 from shiny.express import input, render, ui
 import matplotlib.ticker as ticker
 import matplotlib.pyplot as plt
+import matplotlib.dates as mdates
 import dayplot as dp
 import pandas as pd
 import plotly.express as px
+import plotly.graph_objects as go
 from shinyswatch import theme
 
 
+ui.page_opts(
+    title="NYC Motor Vehicle Collisions dashboard",
+    fillable=True,
+    theme=theme.darkly,
+)
 
-ui.page_opts(title="NYC Motor Vehicle Collisions dashboard", fillable=True, theme=theme.darkly, )
+scale_state = reactive.Value(True)  # False = linear, True = log
 
 
+@reactive.effect
+@reactive.event(input.toggle_scale)
+def _():
+    scale_state.set(not scale_state.get())
 
 
-with ui.navset_pill(id="tab"):  
+with ui.navset_pill(id="tab"):
     with ui.nav_panel("Year"):
         with ui.layout_column_wrap(fill=True):
-            with ui.value_box(showcase=icon_svg("satellite-dish"), fill=True, width="auto"):
+            with ui.value_box(
+                showcase=icon_svg("satellite-dish"), fill=True, width="auto"
+            ):
                 "Number of Crashes"
+
                 @render.text
                 def injury_types():
                     return year_df()["count"].sum()
-                
+
             with ui.card():
-                ui.input_numeric("year", "Year input", 2019, min=2012, max=2025,  width="auto")  
+                ui.input_numeric(
+                    "year", "Year input", 2019, min=2012, max=2025, width="auto"
+                )
 
         with ui.layout_column_wrap(fill=False):
             with ui.card(full_screen=True):
                 ui.card_header("Crashes per day heatmap")
+
                 @render.plot
                 def heatmap():
                     fig, ax = plt.subplots(figsize=(15, 6), dpi=55)
@@ -72,15 +89,95 @@ with ui.navset_pill(id="tab"):
                     fig.set_facecolor("#2d2d2d")
                     ax.set_facecolor("#2d2d2d")
                     return fig
+
         with ui.layout_column_wrap(fill=False):
             with ui.card(full_screen=True):
                 ui.card_header("Crashes per Hour and Minute (Animated)")
-                @render.ui
-                def show_animation():
-                    return ui.img(src="crashes_animation.gif", alt="Animation")
 
-                        
-                
+                @render.ui
+                def plot_crashes():
+
+                    grouped_df = time_grouped
+                    selected_year = input.year()
+                    fig = go.Figure()
+
+                    # -------- OTHER YEARS (static) --------
+                    for year in grouped_df["YEAR"].unique():
+                        if year == selected_year:
+                            continue
+
+                        year_df = grouped_df[grouped_df["YEAR"] == year]
+                        fig.add_trace(
+                            go.Scatter(
+                                x=year_df["CRASH_HOUR_MINUTE"],
+                                y=year_df["count"],
+                                name=str(year),
+                                line=dict(color="gray", width=1),
+                                showlegend=False,
+                            )
+                        )
+
+                    # -------- SELECTED YEAR (animated) --------
+                    selected_df = grouped_df[grouped_df["YEAR"] == selected_year]
+
+                    # Frames: progressively reveal the line
+                    frames = []
+                    for i in range(1, len(selected_df) + 1):
+                        frames.append(
+                            go.Frame(
+                                data=[
+                                    go.Scatter(
+                                        x=selected_df["CRASH_HOUR_MINUTE"].iloc[:i],
+                                        y=selected_df["count"].iloc[:i],
+                                        mode="lines",
+                                        line=dict(color="orange", width=3)
+                                    )
+                                ],
+                                name=f"frame{i}"
+                            )
+                        )
+
+                    fig.frames = frames
+
+                    fig.update_layout(
+                        updatemenus=[
+                            {
+                                "type": "buttons",
+                                "showactive": False,
+                                "buttons": [
+                                    {
+                                        "label": "Play",
+                                        "method": "animate",
+                                        "args": [
+                                            None,
+                                            {
+                                                "frame": {"duration": 30, "redraw": False},
+                                                "fromcurrent": True,
+                                                "transition": {"duration": 0}
+                                            }
+                                        ]
+                                    }
+                                ],
+                                "pad": {"r": 0, "t": 0},
+                                "x": 0.97,
+                                "y": 0.98
+                            }
+                        ]
+                    )
+
+                    # Usual layout
+                    fig.update_layout(
+                        title="Crashes per 15-Minute Interval by Year",
+                        xaxis_title="Time of Day",
+                        yaxis_title="Number of Crashes",
+                        xaxis=dict(tickformat="%H:%M", tickangle=45),
+                        font_color="white",
+                        plot_bgcolor="#2d2d2d",
+                        paper_bgcolor="#2d2d2d",
+                    )
+
+                    return ui.HTML(fig.to_html())
+
     with ui.nav_panel("Injury"):
         with ui.layout_columns(fill=False, col_widths=(4, 8)):
             with ui.card(full_screen=True):
@@ -188,34 +285,30 @@ with ui.navset_pill(id="tab"):
 
 ui.include_css(app_dir / "styles.css")
 
+
 @reactive.calc
 def filtered_df():
     filt_df = df
     return filt_df
 
+df["CRASH_DATE"] = pd.to_datetime(df["CRASH_DATE"])
+df["CRASH_TIME"] = pd.to_datetime(df["CRASH_TIME"], format="%H:%M")
+df["CRASH_HOUR_MINUTE"] = df["CRASH_TIME"].dt.floor("15T").dt.strftime("%H:%M")
+df["YEAR"] = df["CRASH_DATE"].dt.year
+
+time_grouped = df.groupby(["CRASH_HOUR_MINUTE", "YEAR"]).size().reset_index(name="count")
+
+day_grouped = (
+    df
+    .groupby(["YEAR", df["CRASH_DATE"].dt.date])
+    .size()
+    .reset_index(name="count")
+    .rename(columns={0: "count"})
+)
+
+day_grouped["CRASH_DATE"] = pd.to_datetime(day_grouped["CRASH_DATE"])
+
 @reactive.calc
 def year_df():
-    # Convert CRASH_DATE to datetime if it's not already
-    df["CRASH_DATE"] = pd.to_datetime(df["CRASH_DATE"])
-    # Filter by year
-    filt_df = df[df["CRASH_DATE"].dt.year == input.year()]
-    # Group by date and count occurrences
-    grouped = filt_df.groupby(filt_df["CRASH_DATE"].dt.date).size().reset_index(name="count")
-    grouped["CRASH_DATE"] = pd.to_datetime(grouped["CRASH_DATE"])
-    return grouped
-
-@reactive.calc
-def time_df():
-    # Convert CRASH_TIME to datetime, specifying the format
-    df["CRASH_TIME"] = pd.to_datetime(df["CRASH_TIME"], format="%H:%M")
-
-    # Extract only the time component (hour and minute)
-    df["CRASH_HOUR_MINUTE"] = df["CRASH_TIME"].dt.strftime("%H:%M")
-
-    # Group by the time component and count occurrences
-    grouped = df.groupby("CRASH_HOUR_MINUTE").size().reset_index(name="count")
-
-    return grouped
-
-
+    return day_grouped[day_grouped["YEAR"] == input.year()]
 
