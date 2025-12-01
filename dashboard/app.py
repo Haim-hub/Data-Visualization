@@ -200,6 +200,7 @@ with ui.navset_pill(id="tab"):
                             y="Count",
                             text="Count",
                         )
+                        fig.update_traces(marker_color='orange')
                         fig.update_layout(
                             plot_bgcolor='rgba(0,0,0,0)',
                             paper_bgcolor='rgba(0,0,0,0)',
@@ -350,6 +351,8 @@ with ui.navset_pill(id="tab"):
 
                         yaxis_type = "log" if scale_state.get() else "linear"
                         fig.update_layout(
+                            plot_bgcolor='rgba(0,0,0,0)',
+                            paper_bgcolor='rgba(0,0,0,0)',
                             xaxis_tickangle=45,
                             yaxis_type=yaxis_type,
                             legend_title_text="Injury Status ",
@@ -410,6 +413,8 @@ with ui.navset_pill(id="tab"):
                         )
 
                         fig.update_layout(
+                            plot_bgcolor='rgba(0,0,0,0)',
+                            paper_bgcolor='rgba(0,0,0,0)',
                             xaxis_tickangle=45,
                             legend_title_text="Injury Status",
                             yaxis_type="log",
