@@ -241,6 +241,13 @@ with ui.navset_pill(id="tab"):
                         df_grouped['TOTAL_PER_EQUIPMENT'] = df_grouped.groupby('SAFETY_EQUIPMENT_SHORT')['Count'].transform('sum')
                         df_grouped['PERCENTAGE'] = (df_grouped['Count'] / df_grouped['TOTAL_PER_EQUIPMENT']) * 100
                         df_grouped['PERCENTAGE'] = df_grouped['PERCENTAGE'].round(1)
+                        
+                        ejection_colors = {
+                            "Not Ejected": "#FFA500", 
+                            "Trapped": "#FF7700",      
+                            "Partially Ejected": "#FF6347",
+                            "Ejected": "#FF0000"
+                        }
 
                         fig = px.bar(
                             df_grouped,
@@ -256,6 +263,7 @@ with ui.navset_pill(id="tab"):
                                 "EJECTION": "Ejection Status",
                             },
                             text='PERCENTAGE',
+                            color_discrete_map=ejection_colors,
                             category_orders={"EJECTION": ["Not Ejected", "Trapped", "Partially Ejected", "Ejected"]},
                             height=600,
                             template="plotly_white"
@@ -335,13 +343,19 @@ with ui.navset_pill(id="tab"):
                             )
 
                         injury_df = pd.DataFrame(injury_data)
+
+                        injury_colors = {
+                            "Injured": "orange",
+                            "Killed": "red",
+                        }
+
                         fig = px.bar(
                             injury_df,
                             x="Age Group",
                             y=["Injured", "Killed"],
                             title="Injured vs Killed by Age Group",
                             barmode="group",
-                            color="variable",
+                            color_discrete_map=injury_colors,
                             labels={
                                 "value": "Number of People",
                                 "variable": "Injury Status",
