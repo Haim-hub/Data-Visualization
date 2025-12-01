@@ -353,6 +353,7 @@ with ui.navset_pill(id="tab"):
                         fig.update_layout(
                             plot_bgcolor='rgba(0,0,0,0)',
                             paper_bgcolor='rgba(0,0,0,0)',
+                            font_color='white',
                             xaxis_tickangle=45,
                             yaxis_type=yaxis_type,
                             legend_title_text="Injury Status ",
@@ -415,6 +416,7 @@ with ui.navset_pill(id="tab"):
                         fig.update_layout(
                             plot_bgcolor='rgba(0,0,0,0)',
                             paper_bgcolor='rgba(0,0,0,0)',
+                            font_color='white',
                             xaxis_tickangle=45,
                             legend_title_text="Injury Status",
                             yaxis_type="log",
