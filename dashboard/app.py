@@ -82,66 +82,96 @@ with ui.navset_pill(id="tab"):
                         
                 
     with ui.nav_panel("Injury"):
-        with ui.layout_column_wrap(fill=False):
+        with ui.layout_columns(fill=False, col_widths=(4, 8)):
             with ui.card(full_screen=True):
                 ui.card_header("Types of resulting injury")
+                with ui.card_body(padding=0):
+                    @render_plotly
+                    def injury_plot():
+                        df_injured = df[df["BODILY_INJURY"] != "Does Not Apply"]
+                        injury_counts = (
+                            df_injured["BODILY_INJURY"]
+                            .dropna()
+                            .value_counts()
+                            .reset_index()
+                        )
 
-                @render_plotly
-                def injury_plot():
-                    df_injured = df[df["BODILY_INJURY"] != "Does Not Apply"]
-                    injury_counts = (
-                        df_injured["BODILY_INJURY"]
-                        .dropna()
-                        .value_counts()
-                        .reset_index()
-                    )
+                        injury_counts.columns = ["InjuryType", "Count"]
+                        fig = px.bar(
+                            injury_counts,
+                            x="InjuryType",
+                            y="Count",
+                            text="Count",
+                        )
+                        fig.update_layout(
+                            plot_bgcolor='rgba(0,0,0,0)',
+                            paper_bgcolor='rgba(0,0,0,0)',
+                            font_color='white',
+                            xaxis_tickangle=-45
+                        )
+                    
 
-                    injury_counts.columns = ["InjuryType", "Count"]
-                    fig = px.bar(
-                        injury_counts,
-                        x="InjuryType",
-                        y="Count",
-                        title="Distribution of Bodily Injury Types",
-                        text="Count",
-                    )
-                    fig.update_layout(xaxis_tickangle=45)
-
-                    return fig
-
+                        return fig
             with ui.card(full_screen=True):
-                ui.card_header("Relationship between safety equipment and being yeeted")
-                @render_plotly
-                def safety_ejection_plot_card():
-                    relationship_counts = (
-                        df.groupby(["SAFETY_EQUIPMENT", "EJECTION"])
-                        .size()
-                        .reset_index(name='Count')
-                    )
+                ui.card_header("Relationship between safety equipment and being thrown from the vehicle")
+                with ui.card_body(padding=0):
+                    @render_plotly
+                    def safety_ejection_plot_card():
+                        df_status = df[
+                            (~df['EJECTION'].isin(['Unknown', 'Does Not Apply'])) &
+                            (~df['SAFETY_EQUIPMENT'].isin(['-', 'Unknown']))
+                        ].copy()
+                        
+                        equipment_map = {
+                            'Air Bag Deployed': 'Air Bag',
+                            'Air Bag Deployed/Lap Belt': 'Air Bag + Lap Belt',
+                            'Air Bag Deployed/Child Restraint': 'Air Bag + Child Rstrnt',
+                            'Air Bag Deployed/Lap Belt/Harness': 'Air Bag + LB + Hrnss',
+                            'Child Restraint Only': 'Child Rstrnt',
+                            'Helmet (Motorcycle Only)': 'Helm (Mtr)',
+                            'Helmet/Other (In-Line Skater/Bicyclist)': 'Helm/Othr (Sk8/Bike)',
+                            'Helmet Only (In-Line Skater/Bicyclist)': 'Helm (Sk8/Bike)',
+                            'Pads Only (In-Line Skater/Bicyclist)': 'Pads (Sk8/Bike)',
+                            'Stoppers Only (In-Line Skater/Bicyclist)': 'Stoppers (Sk8/Bike)',
+                        }
+    
+                        df_status['SAFETY_EQUIPMENT_SHORT'] = df_status['SAFETY_EQUIPMENT'].apply(
+                            lambda x: equipment_map.get(x, x)
+                        )
+                        
+                        df_grouped = df_status.groupby(['SAFETY_EQUIPMENT_SHORT', 'SAFETY_EQUIPMENT', 'EJECTION']).size().reset_index(name='Count')
+                        df_grouped['TOTAL_PER_EQUIPMENT'] = df_grouped.groupby('SAFETY_EQUIPMENT_SHORT')['Count'].transform('sum')
+                        df_grouped['PERCENTAGE'] = (df_grouped['Count'] / df_grouped['TOTAL_PER_EQUIPMENT']) * 100
+                        df_grouped['PERCENTAGE'] = df_grouped['PERCENTAGE'].round(1)
 
-                    relationship_counts = relationship_counts.fillna("Unknown/Not Reported")
+                        fig = px.bar(
+                            df_grouped,
+                            x="SAFETY_EQUIPMENT_SHORT",
+                            y="PERCENTAGE",
+                            color="EJECTION",
+                            barmode="stack",
+                            hover_data={"SAFETY_EQUIPMENT_SHORT": False, "SAFETY_EQUIPMENT": False},
+                            hover_name="SAFETY_EQUIPMENT",
+                            labels={
+                                "SAFETY_EQUIPMENT_SHORT": "Type of Safety Equipment Used",
+                                "PERCENTAGE": "Ejection Status (%)",
+                                "EJECTION": "Ejection Status",
+                            },
+                            text='PERCENTAGE',
+                            category_orders={"EJECTION": ["Not Ejected", "Trapped", "Partially Ejected", "Ejected"]},
+                            height=600,
+                            template="plotly_white"
+                        )
+                        fig.update_traces(texttemplate='%{y:.1f}%', textposition='inside')
+                        fig.update_yaxes(range=[0, 100], ticksuffix='%')                  
+                        fig.update_layout(
+                            plot_bgcolor='rgba(0,0,0,0)',
+                            paper_bgcolor='rgba(0,0,0,0)',
+                            font_color='white',
+                            xaxis_tickangle=-45
+                        )  
 
-                    fig = px.bar(
-                        relationship_counts,
-                        x="SAFETY_EQUIPMENT",
-                        y="Count",
-                        color="SAFETY_EQUIPMENT",
-                        barmode="group",
-                        title=f"Relationship Between Safety Equipment and Ejection Status",
-                        labels={
-                            "SAFETY_EQUIPMENT": "Safety Equipment Used",
-                            "EJECTION": "Ejection Status",
-                            "Count": "Number of Incidents"
-                        },
-                        height=500,
-                        template="plotly_white"
-                    )
-
-                    fig.update_layout(
-                        xaxis_tickangle=45,
-                        legend_title_text="Ejection Status"
-                    )
-
-                    return fig
+                        return fig
                 
                 
 
@@ -151,6 +181,9 @@ with ui.navset_pill(id="tab"):
                 @render.text
                 def num_sigthingss():
                     return time_df()["count"].sum()
+    
+    with ui.nav_panel("About"):
+        pass
 
 
 ui.include_css(app_dir / "styles.css")
