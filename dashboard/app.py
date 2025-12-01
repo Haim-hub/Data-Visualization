@@ -130,10 +130,10 @@ with ui.navset_pill(id="tab"):
                                         x=selected_df["CRASH_HOUR_MINUTE"].iloc[:i],
                                         y=selected_df["count"].iloc[:i],
                                         mode="lines",
-                                        line=dict(color="orange", width=3)
+                                        line=dict(color="orange", width=3),
                                     )
                                 ],
-                                name=f"frame{i}"
+                                name=f"frame{i}",
                             )
                         )
 
@@ -151,16 +151,19 @@ with ui.navset_pill(id="tab"):
                                         "args": [
                                             None,
                                             {
-                                                "frame": {"duration": 30, "redraw": False},
+                                                "frame": {
+                                                    "duration": 30,
+                                                    "redraw": False,
+                                                },
                                                 "fromcurrent": True,
-                                                "transition": {"duration": 0}
-                                            }
-                                        ]
+                                                "transition": {"duration": 0},
+                                            },
+                                        ],
                                     }
                                 ],
                                 "pad": {"r": 0, "t": 0},
                                 "x": 0.97,
-                                "y": 0.98
+                                "y": 0.98,
                             }
                         ]
                     )
@@ -183,6 +186,7 @@ with ui.navset_pill(id="tab"):
             with ui.card(full_screen=True):
                 ui.card_header("Types of resulting injury")
                 with ui.card_body(padding=0):
+
                     @render_plotly
                     def injury_plot():
                         df_injured = df[df["BODILY_INJURY"] != "Does Not Apply"]
@@ -201,45 +205,62 @@ with ui.navset_pill(id="tab"):
                             text="Count",
                         )
                         fig.update_layout(
-                            plot_bgcolor='rgba(0,0,0,0)',
-                            paper_bgcolor='rgba(0,0,0,0)',
-                            font_color='white',
-                            xaxis_tickangle=-45
+                            plot_bgcolor="rgba(0,0,0,0)",
+                            paper_bgcolor="rgba(0,0,0,0)",
+                            font_color="white",
+                            xaxis_tickangle=-45,
                         )
-                    
 
                         return fig
+
             with ui.card(full_screen=True):
-                ui.card_header("Relationship between safety equipment and being thrown from the vehicle")
+                ui.card_header(
+                    "Relationship between safety equipment and being thrown from the vehicle"
+                )
                 with ui.card_body(padding=0):
+
                     @render_plotly
                     def safety_ejection_plot_card():
                         df_status = df[
-                            (~df['EJECTION'].isin(['Unknown', 'Does Not Apply'])) &
-                            (~df['SAFETY_EQUIPMENT'].isin(['-', 'Unknown']))
+                            (~df["EJECTION"].isin(["Unknown", "Does Not Apply"]))
+                            & (~df["SAFETY_EQUIPMENT"].isin(["-", "Unknown"]))
                         ].copy()
-                        
+
                         equipment_map = {
-                            'Air Bag Deployed': 'Air Bag',
-                            'Air Bag Deployed/Lap Belt': 'Air Bag + Lap Belt',
-                            'Air Bag Deployed/Child Restraint': 'Air Bag + Child Rstrnt',
-                            'Air Bag Deployed/Lap Belt/Harness': 'Air Bag + LB + Hrnss',
-                            'Child Restraint Only': 'Child Rstrnt',
-                            'Helmet (Motorcycle Only)': 'Helm (Mtr)',
-                            'Helmet/Other (In-Line Skater/Bicyclist)': 'Helm/Othr (Sk8/Bike)',
-                            'Helmet Only (In-Line Skater/Bicyclist)': 'Helm (Sk8/Bike)',
-                            'Pads Only (In-Line Skater/Bicyclist)': 'Pads (Sk8/Bike)',
-                            'Stoppers Only (In-Line Skater/Bicyclist)': 'Stoppers (Sk8/Bike)',
+                            "Air Bag Deployed": "Air Bag",
+                            "Air Bag Deployed/Lap Belt": "Air Bag + Lap Belt",
+                            "Air Bag Deployed/Child Restraint": "Air Bag + Child Rstrnt",
+                            "Air Bag Deployed/Lap Belt/Harness": "Air Bag + LB + Hrnss",
+                            "Child Restraint Only": "Child Rstrnt",
+                            "Helmet (Motorcycle Only)": "Helm (Mtr)",
+                            "Helmet/Other (In-Line Skater/Bicyclist)": "Helm/Othr (Sk8/Bike)",
+                            "Helmet Only (In-Line Skater/Bicyclist)": "Helm (Sk8/Bike)",
+                            "Pads Only (In-Line Skater/Bicyclist)": "Pads (Sk8/Bike)",
+                            "Stoppers Only (In-Line Skater/Bicyclist)": "Stoppers (Sk8/Bike)",
                         }
-    
-                        df_status['SAFETY_EQUIPMENT_SHORT'] = df_status['SAFETY_EQUIPMENT'].apply(
-                            lambda x: equipment_map.get(x, x)
+
+                        df_status["SAFETY_EQUIPMENT_SHORT"] = df_status[
+                            "SAFETY_EQUIPMENT"
+                        ].apply(lambda x: equipment_map.get(x, x))
+
+                        df_grouped = (
+                            df_status.groupby(
+                                [
+                                    "SAFETY_EQUIPMENT_SHORT",
+                                    "SAFETY_EQUIPMENT",
+                                    "EJECTION",
+                                ]
+                            )
+                            .size()
+                            .reset_index(name="Count")
                         )
-                        
-                        df_grouped = df_status.groupby(['SAFETY_EQUIPMENT_SHORT', 'SAFETY_EQUIPMENT', 'EJECTION']).size().reset_index(name='Count')
-                        df_grouped['TOTAL_PER_EQUIPMENT'] = df_grouped.groupby('SAFETY_EQUIPMENT_SHORT')['Count'].transform('sum')
-                        df_grouped['PERCENTAGE'] = (df_grouped['Count'] / df_grouped['TOTAL_PER_EQUIPMENT']) * 100
-                        df_grouped['PERCENTAGE'] = df_grouped['PERCENTAGE'].round(1)
+                        df_grouped["TOTAL_PER_EQUIPMENT"] = df_grouped.groupby(
+                            "SAFETY_EQUIPMENT_SHORT"
+                        )["Count"].transform("sum")
+                        df_grouped["PERCENTAGE"] = (
+                            df_grouped["Count"] / df_grouped["TOTAL_PER_EQUIPMENT"]
+                        ) * 100
+                        df_grouped["PERCENTAGE"] = df_grouped["PERCENTAGE"].round(1)
 
                         fig = px.bar(
                             df_grouped,
@@ -247,28 +268,41 @@ with ui.navset_pill(id="tab"):
                             y="PERCENTAGE",
                             color="EJECTION",
                             barmode="stack",
-                            hover_data={"SAFETY_EQUIPMENT_SHORT": False, "SAFETY_EQUIPMENT": False},
+                            hover_data={
+                                "SAFETY_EQUIPMENT_SHORT": False,
+                                "SAFETY_EQUIPMENT": False,
+                            },
                             hover_name="SAFETY_EQUIPMENT",
                             labels={
                                 "SAFETY_EQUIPMENT_SHORT": "Type of Safety Equipment Used",
                                 "PERCENTAGE": "Ejection Status (%)",
                                 "EJECTION": "Ejection Status",
                             },
-                            text='PERCENTAGE',
-                            category_orders={"EJECTION": ["Not Ejected", "Trapped", "Partially Ejected", "Ejected"]},
+                            text="PERCENTAGE",
+                            category_orders={
+                                "EJECTION": [
+                                    "Not Ejected",
+                                    "Trapped",
+                                    "Partially Ejected",
+                                    "Ejected",
+                                ]
+                            },
                             height=600,
-                            template="plotly_white"
+                            template="plotly_white",
                         )
-                        fig.update_traces(texttemplate='%{y:.1f}%', textposition='inside')
-                        fig.update_yaxes(range=[0, 100], ticksuffix='%')                  
+                        fig.update_traces(
+                            texttemplate="%{y:.1f}%", textposition="inside"
+                        )
+                        fig.update_yaxes(range=[0, 100], ticksuffix="%")
                         fig.update_layout(
-                            plot_bgcolor='rgba(0,0,0,0)',
-                            paper_bgcolor='rgba(0,0,0,0)',
-                            font_color='white',
-                            xaxis_tickangle=-45
-                        )  
+                            plot_bgcolor="rgba(0,0,0,0)",
+                            paper_bgcolor="rgba(0,0,0,0)",
+                            font_color="white",
+                            xaxis_tickangle=-45,
+                        )
 
                         return fig
+
             with ui.layout_column_wrap(fill=False):
                 with ui.card(full_screen=True):
                     ui.card_header("Injured vs Killed by Age Group")
@@ -356,6 +390,7 @@ with ui.navset_pill(id="tab"):
                         )
 
                         return fig
+
             with ui.layout_column_wrap(fill=True):
                 # Relation chart between position and injury
                 with ui.card(full_screen=True):
@@ -390,9 +425,11 @@ with ui.navset_pill(id="tab"):
                             )
                         ]
                         # Translate them
-                        relationship_counts["POSITION_IN_VEHICLE"] = relationship_counts[
-                            "POSITION_IN_VEHICLE"
-                        ].map(all_positions_unique)
+                        relationship_counts["POSITION_IN_VEHICLE"] = (
+                            relationship_counts["POSITION_IN_VEHICLE"].map(
+                                all_positions_unique
+                            )
+                        )
 
                         fig = px.bar(
                             relationship_counts,
@@ -417,16 +454,210 @@ with ui.navset_pill(id="tab"):
 
                         return fig
 
-                
-                
-
     with ui.nav_panel("AI"):
-        with ui.value_box(showcase=icon_svg("satellite-dish"), fill=True, width="auto"):
-                "Number of Crashes"
-                @render.text
-                def num_sigthingss():
-                    return time_df()["count"].sum()
-    
+
+        with ui.layout_column_wrap(fill=False):
+
+            # CHART 1: SANKEY (Improved Labels & Flow Colors)
+            with ui.card(full_screen=True):
+                ui.card_header("AI Analysis: Pedestrian Risk Flow")
+
+                @render_plotly
+                def pedestrian_sankey():
+                    # 1. Data Prep
+                    df_ped = df[df["PERSON_TYPE"] == "Pedestrian"].copy()
+                    cols = ["PED_LOCATION", "PED_ACTION", "PERSON_INJURY"]
+                    for c in cols:
+                        df_ped = df_ped[
+                            ~df_ped[c].isin(
+                                ["Unknown", "Does Not Apply", "nan", "Unspecified"]
+                            )
+                        ]
+                        df_ped = df_ped.dropna(subset=[c])
+
+                    # 2. Shorten Labels (Crucial for cleaner visuals)
+                    df_ped["PED_LOCATION"] = df_ped["PED_LOCATION"].replace(
+                        {
+                            "Pedestrian/Bicyclist/Other Pedestrian at Intersection": "Intersection",
+                            "Pedestrian/Bicyclist/Other Pedestrian Not at Intersection": "Not at Intersection",
+                        }
+                    )
+
+                    # 3. Add Suffixes
+                    df_ped["L"] = df_ped["PED_LOCATION"]
+                    df_ped["A"] = df_ped["PED_ACTION"] + " (Act)"
+                    df_ped["R"] = df_ped["PERSON_INJURY"]
+
+                    # 4. Create Flows
+                    flow1 = df_ped.groupby(["L", "A"]).size().reset_index(name="value")
+                    flow1.columns = ["source", "target", "value"]
+
+                    flow2 = df_ped.groupby(["A", "R"]).size().reset_index(name="value")
+                    flow2.columns = ["source", "target", "value"]
+
+                    links = pd.concat([flow1, flow2], axis=0)
+
+                    # 5. Map Nodes
+                    unique_nodes = list(
+                        pd.unique(links[["source", "target"]].values.ravel("K"))
+                    )
+                    node_map = {name: i for i, name in enumerate(unique_nodes)}
+
+                    links["source_id"] = links["source"].map(node_map)
+                    links["target_id"] = links["target"].map(node_map)
+
+                    # 6. Colors: Cool Blues for Context, Hot Colors for Danger
+                    node_colors_map = {}
+                    for node in unique_nodes:
+                        if "Killed" in node:
+                            color = "#FF0055"  # Neon Red
+                        elif "Injured" in node:
+                            color = "#FF9900"  # Neon Orange
+                        elif "Intersection" in node:
+                            color = "#00D4FF"  # Cyan
+                        elif "(Act)" in node:
+                            color = "#9D00FF"  # Electric Purple
+                        else:
+                            color = "#666666"
+                        node_colors_map[node] = color
+
+                    node_colors_list = [node_colors_map[n] for n in unique_nodes]
+
+                    # 7. Link Gradients
+                    link_colors = []
+                    for index, row in links.iterrows():
+                        # If the target is "Killed", make the link RED regardless of source
+                        if "Killed" in row["target"]:
+                            link_colors.append("rgba(255, 0, 85, 0.8)")  # Solid Red
+                        elif "Injured" in row["target"]:
+                            link_colors.append(
+                                "rgba(255, 153, 0, 0.4)"
+                            )  # Semi-transparent Orange
+                        else:
+                            link_colors.append("rgba(100, 100, 255, 0.2)")  # Faint Blue
+
+                    fig = go.Figure(
+                        data=[
+                            go.Sankey(
+                                node=dict(
+                                    pad=20,
+                                    thickness=15,
+                                    line=dict(color="black", width=0.5),
+                                    label=[
+                                        n.replace(" (Act)", "") for n in unique_nodes
+                                    ],
+                                    color=node_colors_list,
+                                ),
+                                link=dict(
+                                    source=links["source_id"],
+                                    target=links["target_id"],
+                                    value=links["value"],
+                                    color=link_colors,
+                                ),
+                            )
+                        ]
+                    )
+
+                    fig.update_layout(
+                        title_text="Pedestrian Incident Flow",
+                        font_size=12,
+                        height=600,
+                        paper_bgcolor="rgba(0,0,0,0)",
+                        plot_bgcolor="rgba(0,0,0,0)",
+                        font_color="white",
+                        margin=dict(l=10, r=10, t=40, b=10),
+                    )
+                    return fig
+
+            # CHART 2: PARALLEL CATEGORIES (Ghost vs Neon Edition)
+            with ui.card(full_screen=True):
+                ui.card_header("AI Analysis: Fatal Accident Pathways")
+
+                @render_plotly
+                def parallel_categories_plot():
+                    cols = [
+                        "PERSON_SEX",
+                        "PERSON_TYPE",
+                        "SAFETY_EQUIPMENT",
+                        "PERSON_INJURY",
+                    ]
+                    df_cat = df[cols].copy().dropna()
+
+                    for c in cols:
+                        df_cat = df_cat[
+                            ~df_cat[c].isin(
+                                [
+                                    "Unknown",
+                                    "Does Not Apply",
+                                    "nan",
+                                    "Unspecified",
+                                    "U",
+                                    "-",
+                                ]
+                            )
+                        ]
+
+                    df_cat = df_cat[df_cat["PERSON_INJURY"].isin(["Injured", "Killed"])]
+
+                    def clean_equip(x):
+                        if "Lap Belt" in x or "Harness" in x:
+                            return "Seatbelt"
+                        if "Air Bag" in x:
+                            return "Airbag"
+                        if "Helmet" in x:
+                            return "Helmet"
+                        if "None" in x:
+                            return "None"
+                        return "Other"
+
+                    df_cat["SAFETY_EQUIPMENT"] = df_cat["SAFETY_EQUIPMENT"].apply(
+                        clean_equip
+                    )
+
+                    # --- THE TRICK: Custom Color Scale ---
+                    # Map Injured -> 0, Killed -> 1
+                    injury_map = {"Injured": 0, "Killed": 1}
+                    df_cat["INJURY_CODE"] = df_cat["PERSON_INJURY"].map(injury_map)
+
+                    # Sort: Important! We want Killed (1) to be plotted LAST so they appear ON TOP
+                    df_cat = df_cat.sort_values("INJURY_CODE")
+
+                    fig = px.parallel_categories(
+                        df_cat,
+                        dimensions=[
+                            "PERSON_TYPE",
+                            "PERSON_SEX",
+                            "SAFETY_EQUIPMENT",
+                            "PERSON_INJURY",
+                        ],
+                        color="INJURY_CODE",
+                        # Ghost Mode: 0 is faint blue-grey, 1 is bright neon red
+                        color_continuous_scale=[
+                            (
+                                0.00,
+                                "rgba(100, 149, 237, 0.2)",
+                            ),  # Ghostly Cornflower Blue
+                            (1.00, "rgba(255, 0, 0, 1.0)"),  # Solid Neon Red
+                        ],
+                        labels={
+                            "PERSON_TYPE": "Role",
+                            "PERSON_SEX": "Sex",
+                            "SAFETY_EQUIPMENT": "Safety",
+                            "PERSON_INJURY": "Outcome",
+                        },
+                        height=600,
+                    )
+
+                    fig.update_layout(
+                        margin=dict(l=20, r=20, t=40, b=20),
+                        paper_bgcolor="rgba(0,0,0,0)",
+                        plot_bgcolor="rgba(0,0,0,0)",
+                        font_color="white",
+                        coloraxis_showscale=False,
+                    )
+
+                    return fig
+
     with ui.nav_panel("About"):
         pass
 
@@ -439,16 +670,18 @@ def filtered_df():
     filt_df = df
     return filt_df
 
+
 df["CRASH_DATE"] = pd.to_datetime(df["CRASH_DATE"])
 df["CRASH_TIME"] = pd.to_datetime(df["CRASH_TIME"], format="%H:%M")
 df["CRASH_HOUR_MINUTE"] = df["CRASH_TIME"].dt.floor("15T").dt.strftime("%H:%M")
 df["YEAR"] = df["CRASH_DATE"].dt.year
 
-time_grouped = df.groupby(["CRASH_HOUR_MINUTE", "YEAR"]).size().reset_index(name="count")
+time_grouped = (
+    df.groupby(["CRASH_HOUR_MINUTE", "YEAR"]).size().reset_index(name="count")
+)
 
 day_grouped = (
-    df
-    .groupby(["YEAR", df["CRASH_DATE"].dt.date])
+    df.groupby(["YEAR", df["CRASH_DATE"].dt.date])
     .size()
     .reset_index(name="count")
     .rename(columns={0: "count"})
@@ -456,7 +689,7 @@ day_grouped = (
 
 day_grouped["CRASH_DATE"] = pd.to_datetime(day_grouped["CRASH_DATE"])
 
+
 @reactive.calc
 def year_df():
     return day_grouped[day_grouped["YEAR"] == input.year()]
-
