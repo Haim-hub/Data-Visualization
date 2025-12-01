@@ -288,7 +288,6 @@ with ui.navset_pill(id="tab"):
                                     "Ejected",
                                 ]
                             },
-                            height=600,
                             template="plotly_white",
                         )
                         fig.update_traces(
