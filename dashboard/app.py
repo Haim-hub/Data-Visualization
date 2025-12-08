@@ -24,6 +24,7 @@ ui.page_opts(
 )
 
 scale_state = reactive.Value(True)  # False = linear, True = log
+position_scale_state = reactive.Value(True)  # False = linear, True = log
 
 
 @reactive.effect
@@ -31,12 +32,17 @@ scale_state = reactive.Value(True)  # False = linear, True = log
 def _():
     scale_state.set(not scale_state.get())
 
+@reactive.effect
+@reactive.event(input.toggle_position_scale)
+def _():
+    position_scale_state.set(not position_scale_state.get())
+
 
 with ui.navset_pill(id="tab"):
     with ui.nav_panel("Year"):
         with ui.layout_column_wrap(fill=True):
             with ui.value_box(
-                showcase=icon_svg("satellite-dish"), fill=True, width="auto"
+                showcase=icon_svg("car-burst"), fill=True, width="auto"
             ):
                 "Number of Crashes"
 
@@ -55,8 +61,6 @@ with ui.navset_pill(id="tab"):
             def age_sex_histogram_chart():
                 d = filtered_year_data()
                 
-                # --- ROBUST DATA CLEANING ---
-                # Explicitly use .copy() to ensure 'd' is a new object and avoid SettingWithCopyWarning
                 d = d.copy()
                 
                 # Apply Drivers Only filter if switch is on
@@ -126,7 +130,6 @@ with ui.navset_pill(id="tab"):
                     hovertemplate='Men: %{customdata}<br>Age: %{y}<extra></extra>'
                 ))
 
-                # 3. Layout Adjustments
                 title_suffix = " (Drivers Only)" if input.drivers_only() else ""
                 fig.update_layout(
                     title=f"Crash Distribution by Age ({input.year()}){title_suffix}",
@@ -135,7 +138,6 @@ with ui.navset_pill(id="tab"):
                     xaxis=dict(
                         title='Count',
                         tickmode='sync',
-                        # Custom tick formatter to show positive numbers for negative values
                         tickformat='s' 
                     ),
                     plot_bgcolor="rgba(0,0,0,0)",
@@ -479,18 +481,21 @@ with ui.navset_pill(id="tab"):
                 with ui.card(full_screen=True):
                     ui.card_header("Injured vs Killed by Age Group")
 
-                    ui.input_action_button(
-                        "toggle_scale",
-                        "Toggle Log/Linear Scale",  # Static label
-                        width="200px",
-                    )
+                    @render.ui
+                    def toggle_scale_ui():
 
-                    @render.text
-                    def scale_status():
-                        return (
-                            "Current scale: Logarithmic"
-                            if scale_state.get()
-                            else "Current scale: Linear"
+                        current_scale = scale_state.get()
+
+                        if current_scale:
+                            label = "Switch to Linear Scale"
+                        else:
+                            label = "Switch to Logarithmic Scale"
+
+
+                        return ui.input_action_button(
+                            "toggle_scale",
+                            label,
+                            width="250px",
                         )
 
                     @render_plotly
@@ -568,6 +573,23 @@ with ui.navset_pill(id="tab"):
                 with ui.card(full_screen=True):
                     ui.card_header("Relation between position and injury")
 
+                    @render.ui
+                    def toggle_position_scale_ui():
+
+                        current_scale = position_scale_state.get()
+
+                        if current_scale:
+                            label = "Switch to Linear Scale"
+                        else:
+                            label = "Switch to Logarithmic Scale"
+
+
+                        return ui.input_action_button(
+                            "toggle_position_scale",
+                            label,
+                            width="250px",
+                        )
+
                     @render_plotly
                     def position_injury_plot():
                         relationship_counts = (
@@ -625,6 +647,8 @@ with ui.navset_pill(id="tab"):
                             hover_data=["PERSON_INJURY"],
                         )
 
+                        yaxis_type = "log" if position_scale_state.get() else "linear"
+
                         fig.update_layout(
                             plot_bgcolor='rgba(0,0,0,0)',
                             paper_bgcolor='rgba(0,0,0,0)',
@@ -632,7 +656,7 @@ with ui.navset_pill(id="tab"):
                             xaxis_tickangle=45,
                             
                             legend_title_text="Injury Status",
-                            yaxis_type="log",
+                            yaxis_type=yaxis_type,
                         )
 
                         return fig
