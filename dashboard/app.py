@@ -48,7 +48,152 @@ with ui.navset_pill(id="tab"):
                 ui.input_numeric(
                     "year", "Year input", 2019, min=2012, max=2025, width="auto"
                 )
+        with ui.card(full_screen=True):
+            ui.card_header("Crashes by Age and Gender")
+            ui.input_switch("drivers_only", "Show Drivers Only", value=False)
+            @render_plotly
+            def age_sex_histogram_chart():
+                d = filtered_year_data()
+                
+                # --- ROBUST DATA CLEANING ---
+                # Explicitly use .copy() to ensure 'd' is a new object and avoid SettingWithCopyWarning
+                d = d.copy()
+                
+                # Apply Drivers Only filter if switch is on
+                if input.drivers_only():
+                    d = d[d["POSITION_IN_VEHICLE"] == "Driver"]
+                
+                d["PERSON_AGE"] = pd.to_numeric(d["PERSON_AGE"], errors='coerce')
+                
+                # When dropping NaNs, force a copy so subsequent assignments don't trigger warnings
+                d = d.dropna(subset=["PERSON_AGE"]).copy()
+                
+                # Now safe to convert
+                d["PERSON_AGE"] = d["PERSON_AGE"].astype(int)
+                
+                # Filter Age (1-100) and Sex (M/F)
+                d = d[(d["PERSON_AGE"] >= 1) & (d["PERSON_AGE"] <= 100)]
+                d = d[d["PERSON_SEX"].isin(["M", "F"])]
+                
+                # Group by Age and Sex
+                age_sex_counts = d.groupby(["PERSON_AGE", "PERSON_SEX"]).size().unstack(fill_value=0)
+                
+                # Ensure columns exist
+                if "M" not in age_sex_counts.columns: age_sex_counts["M"] = 0
+                if "F" not in age_sex_counts.columns: age_sex_counts["F"] = 0
+                
+                age_sex_counts = age_sex_counts.sort_index()
+                ages = age_sex_counts.index
+                men_counts = age_sex_counts["M"]
+                women_counts = age_sex_counts["F"]
 
+                # --- PLOTLY CONSTRUCTION ---
+                fig = go.Figure()
+
+                # 1. Women (Right side, Positive)
+                fig.add_trace(go.Bar(
+                    y=ages,
+                    x=women_counts,
+                    orientation='h',
+                    name='Women',
+                    marker_color='#e74c3c',
+                    hoverinfo='x+y'
+                ))
+
+                # 2. Men (Left side, Negative)
+                # We make values negative for position, but use 'customdata' for hover text
+                fig.add_trace(go.Bar(
+                    y=ages,
+                    x=-men_counts,
+                    orientation='h',
+                    name='Men',
+                    marker_color='#3498db',
+                    customdata=men_counts, # Actual positive counts
+                    hovertemplate='Men: %{customdata}<br>Age: %{y}<extra></extra>'
+                ))
+
+                # 3. Layout Adjustments
+                title_suffix = " (Drivers Only)" if input.drivers_only() else ""
+                fig.update_layout(
+                    title=f"Crash Distribution by Age ({input.year()}){title_suffix}",
+                    barmode='overlay', # Overlay allows them to share the row without stacking
+                    bargap=0.1,
+                    xaxis=dict(
+                        title='Count',
+                        tickmode='sync',
+                        # Custom tick formatter to show positive numbers for negative values
+                        tickformat='s' 
+                    ),
+                    yaxis=dict(
+                        title='Age',
+                        range=[100, 0] # Reverses the axis: 0 at top, 100 at bottom
+                    ),
+                    legend=dict(x=0.8, y=0.9),
+                    margin=dict(l=20, r=20, t=50, b=20)
+                )
+                
+                # Optional: Force X-axis to be symmetric
+                max_val = max(men_counts.max(), women_counts.max()) if not age_sex_counts.empty else 10
+                limit = max_val * 1.1
+                fig.update_xaxes(range=[-limit, limit])
+
+                # Fix the negative tick labels on X-axis using standard JS format
+                fig.update_layout(xaxis=dict(ticksuffix=""))
+
+                return fig
+            
+            @render_plotly
+            def age_sex_chart():
+                d = filtered_year_data()
+                
+                # --- ROBUST DATA CLEANING ---
+                d = d.copy()
+                
+                # Apply Drivers Only filter if switch is on
+                if input.drivers_only():
+                    d = d[d["POSITION_IN_VEHICLE"] == "Driver"]
+                
+                d["PERSON_AGE"] = pd.to_numeric(d["PERSON_AGE"], errors='coerce')
+                d = d.dropna(subset=["PERSON_AGE"]).copy()
+                d["PERSON_AGE"] = d["PERSON_AGE"].astype(int)
+                
+                # Filter Age (1-100) and Sex (M/F)
+                d = d[(d["PERSON_AGE"] >= 1) & (d["PERSON_AGE"] <= 100)]
+                d = d[d["PERSON_SEX"].isin(["M", "F"])]
+
+                # --- PLOTLY BOXPLOT CONSTRUCTION ---
+                fig = go.Figure()
+
+                # 1. Women Boxplot
+                fig.add_trace(go.Box(
+                    y=d[d["PERSON_SEX"] == "F"]["PERSON_AGE"],
+                    name='Women',
+                    marker_color='#e74c3c',
+                    boxpoints='outliers', # Only show outlier points to keep it clean
+                    showlegend=False
+                ))
+
+                # 2. Men Boxplot
+                fig.add_trace(go.Box(
+                    y=d[d["PERSON_SEX"] == "M"]["PERSON_AGE"],
+                    name='Men',
+                    marker_color='#3498db',
+                    boxpoints='outliers',
+                    showlegend=False
+                ))
+
+                # 3. Layout Adjustments
+                title_suffix = " (Drivers Only)" if input.drivers_only() else ""
+                fig.update_layout(
+                    title=f"Age Distribution by Gender ({input.year()}){title_suffix}",
+                    yaxis_title="Age",
+                    xaxis_title="Gender",
+                    margin=dict(l=40, r=20, t=50, b=40),
+                    template="plotly_white"
+                )
+
+                return fig
+    
         with ui.layout_column_wrap(fill=False):
             with ui.card(full_screen=True):
                 ui.card_header("Crashes per day heatmap")
@@ -177,6 +322,7 @@ with ui.navset_pill(id="tab"):
                     )
 
                     return ui.HTML(fig.to_html())
+
 
     with ui.nav_panel("Injury"):
         with ui.layout_columns(fill=False, col_widths=(4, 8)):
@@ -460,3 +606,8 @@ day_grouped["CRASH_DATE"] = pd.to_datetime(day_grouped["CRASH_DATE"])
 def year_df():
     return day_grouped[day_grouped["YEAR"] == input.year()]
 
+@reactive.calc
+def filtered_year_data():
+    """Filters the main dataframe based on the selected year."""
+    selected_year = int(input.year())
+    return df[df["YEAR"] == selected_year].copy()
