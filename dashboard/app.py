@@ -96,7 +96,14 @@ with ui.navset_pill(id="tab"):
                     x=women_counts,
                     orientation='h',
                     name='Women',
-                    marker_color='#e74c3c',
+                    width=1,
+                    marker=dict(
+                        color="#B36A7A",
+                        line=dict(
+                            color='#A35A6A', 
+                            width=0.2
+                        )
+                    ),
                     hoverinfo='x+y'
                 ))
 
@@ -107,7 +114,14 @@ with ui.navset_pill(id="tab"):
                     x=-men_counts,
                     orientation='h',
                     name='Men',
-                    marker_color='#3498db',
+                    width=1,
+                    marker=dict(
+                        color="#6AA2B3",
+                        line=dict(
+                            color='#5A92A3', 
+                            width=0.2
+                        )
+                    ),
                     customdata=men_counts, # Actual positive counts
                     hovertemplate='Men: %{customdata}<br>Age: %{y}<extra></extra>'
                 ))
@@ -117,15 +131,19 @@ with ui.navset_pill(id="tab"):
                 fig.update_layout(
                     title=f"Crash Distribution by Age ({input.year()}){title_suffix}",
                     barmode='overlay', # Overlay allows them to share the row without stacking
-                    bargap=0.1,
+                    bargap=1,
                     xaxis=dict(
                         title='Count',
                         tickmode='sync',
                         # Custom tick formatter to show positive numbers for negative values
                         tickformat='s' 
                     ),
+                    plot_bgcolor="rgba(0,0,0,0)",
+                    paper_bgcolor="rgba(0,0,0,0)",
+                    font_color="white",
                     yaxis=dict(
                         title='Age',
+                        dtick=5,
                         range=[100, 0] # Reverses the axis: 0 at top, 100 at bottom
                     ),
                     legend=dict(x=0.8, y=0.9),
@@ -164,30 +182,30 @@ with ui.navset_pill(id="tab"):
                 # --- PLOTLY BOXPLOT CONSTRUCTION ---
                 fig = go.Figure()
 
-                # 1. Women Boxplot
-                fig.add_trace(go.Box(
-                    y=d[d["PERSON_SEX"] == "F"]["PERSON_AGE"],
-                    name='Women',
-                    marker_color='#e74c3c',
-                    boxpoints='outliers', # Only show outlier points to keep it clean
-                    showlegend=False
-                ))
-
-                # 2. Men Boxplot
                 fig.add_trace(go.Box(
                     y=d[d["PERSON_SEX"] == "M"]["PERSON_AGE"],
                     name='Men',
-                    marker_color='#3498db',
+                    marker_color='#6AA2B3',
                     boxpoints='outliers',
                     showlegend=False
                 ))
 
-                # 3. Layout Adjustments
+                fig.add_trace(go.Box(
+                    y=d[d["PERSON_SEX"] == "F"]["PERSON_AGE"],
+                    name='Women',
+                    marker_color='#B36A7A',
+                    boxpoints='outliers', # Only show outlier points to keep it clean
+                    showlegend=False
+                ))
+
                 title_suffix = " (Drivers Only)" if input.drivers_only() else ""
                 fig.update_layout(
                     title=f"Age Distribution by Gender ({input.year()}){title_suffix}",
                     yaxis_title="Age",
                     xaxis_title="Gender",
+                    plot_bgcolor="rgba(0,0,0,0)",
+                    paper_bgcolor="rgba(0,0,0,0)",
+                    font_color="white",
                     margin=dict(l=40, r=20, t=50, b=40),
                     template="plotly_white"
                 )
