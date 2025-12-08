@@ -18,7 +18,7 @@ from shinyswatch import theme
 
 
 ui.page_opts(
-    title="NYC Motor Vehicle Collisions dashboard",
+    title="NYC Motor Vehicle Collisions Dashboard",
     fillable=True,
     theme=theme.darkly,
 )
@@ -866,8 +866,33 @@ with ui.navset_pill(id="tab"):
                     return fig
 
     with ui.nav_panel("About"):
-        pass
+        with ui.card(full_screen=True):
+            ui.card_header("About")
 
+            ui.h3("Purpose")
+            ui.p("This application provides interactive visualizations and analysis of vehicular crash incidents across New York City.")
+            ui.p("Its goal is to help users explore accident patterns, contributing factors, and trends over time.")
+            
+            ui.br()
+
+            ui.h3("Data Source")
+            ui.p("The analysis is based on a dataset of motor vehicle collisons in New York City",)
+    
+            ui.p(
+                "This data is compiled by the New York City Police Department (NYPD) and is publicly available through ",
+                ui.a(
+                     "NYC OpenData",
+                     href="https://data.cityofnewyork.us/Public-Safety/Motor-Vehicle-Collisions-Person/f55k-p6yu/about_data",
+                     target="_blank"
+                 ),
+                 "."
+            )
+
+            ui.br()
+            
+            ui.h3("Technical Details")
+            ui.p("Developed using Shiny for Python and various data science libraries.")
+            ui.p("Data is current as of December 8th 2025.")
 
 ui.include_css(app_dir / "styles.css")
 
