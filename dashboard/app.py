@@ -472,38 +472,29 @@ with ui.navset_pill(id="tab"):
                         age_groups = ["0-17", "18-24", "25-44", "45-64", "65+"]
                         injury_data = []
 
-                        df_all_ages = df["PERSON_AGE"].dropna()
-                        df_all_ages = df_all_ages[
-                            df_all_ages.apply(lambda x: str(x).isdigit())
-                        ]
-                        df_all_ages = df_all_ages.astype(int)
-
+                        # --- FIX: Data is already numeric (float) from ETL ---
+                        # We just drop empty values. No need to check .isdigit() anymore.
+                        df_clean = df.dropna(subset=["PERSON_AGE"])
+                        
+                        # Loop through groups
                         for age_group in age_groups:
                             if age_group == "0-17":
-                                age_filtered = df_all_ages[df_all_ages <= 17]
+                                mask = df_clean["PERSON_AGE"] <= 17
                             elif age_group == "18-24":
-                                age_filtered = df_all_ages[
-                                    (df_all_ages >= 18) & (df_all_ages <= 24)
-                                ]
+                                mask = (df_clean["PERSON_AGE"] >= 18) & (df_clean["PERSON_AGE"] <= 24)
                             elif age_group == "25-44":
-                                age_filtered = df_all_ages[
-                                    (df_all_ages >= 25) & (df_all_ages <= 44)
-                                ]
+                                mask = (df_clean["PERSON_AGE"] >= 25) & (df_clean["PERSON_AGE"] <= 44)
                             elif age_group == "45-64":
-                                age_filtered = df_all_ages[
-                                    (df_all_ages >= 45) & (df_all_ages <= 64)
-                                ]
+                                mask = (df_clean["PERSON_AGE"] >= 45) & (df_clean["PERSON_AGE"] <= 64)
                             else:  # "65+"
-                                age_filtered = df_all_ages[df_all_ages >= 65]
+                                mask = df_clean["PERSON_AGE"] >= 65
 
-                            injured_count = df[
-                                (df["PERSON_AGE"].isin(age_filtered))
-                                & (df["PERSON_INJURY"] == "Injured")
-                            ].shape[0]
-                            killed_count = df[
-                                (df["PERSON_AGE"].isin(age_filtered))
-                                & (df["PERSON_INJURY"] == "Killed")
-                            ].shape[0]
+                            # Get the slice of data for this age group
+                            group_data = df_clean[mask]
+
+                            # Count Injured vs Killed in this specific group
+                            injured_count = len(group_data[group_data["PERSON_INJURY"] == "Injured"])
+                            killed_count = len(group_data[group_data["PERSON_INJURY"] == "Killed"])
 
                             injury_data.append(
                                 {
@@ -545,7 +536,7 @@ with ui.navset_pill(id="tab"):
                         )
 
                         return fig
-
+                    
             with ui.layout_column_wrap(fill=True):
                 # Relation chart between position and injury
                 with ui.card(full_screen=True):
@@ -822,30 +813,6 @@ with ui.navset_pill(id="tab"):
 
 ui.include_css(app_dir / "styles.css")
 
-
-@reactive.calc
-def filtered_df():
-    filt_df = df
-    return filt_df
-
-
-# df["CRASH_DATE"] = pd.to_datetime(df["CRASH_DATE"])
-# df["CRASH_TIME"] = pd.to_datetime(df["CRASH_TIME"], format="%H:%M")
-# df["CRASH_HOUR_MINUTE"] = df["CRASH_TIME"].dt.floor("15T").dt.strftime("%H:%M")
-# df["YEAR"] = df["CRASH_DATE"].dt.year
-
-# time_grouped = (
-#     df.groupby(["CRASH_HOUR_MINUTE", "YEAR"]).size().reset_index(name="count")
-# )
-
-# day_grouped = (
-#     df.groupby(["YEAR", df["CRASH_DATE"].dt.date])
-#     .size()
-#     .reset_index(name="count")
-#     .rename(columns={0: "count"})
-# )
-
-# day_grouped["CRASH_DATE"] = pd.to_datetime(day_grouped["CRASH_DATE"])
 
 
 @reactive.calc
