@@ -3,7 +3,7 @@ import re
 from faicons import icon_svg
 
 # Import data from shared.py
-from shared import app_dir, df
+from shared import app_dir, df, time_grouped, day_grouped
 from shinywidgets import render_widget, render_plotly
 from shiny import reactive
 from shiny.express import input, render, ui
@@ -829,23 +829,23 @@ def filtered_df():
     return filt_df
 
 
-df["CRASH_DATE"] = pd.to_datetime(df["CRASH_DATE"])
-df["CRASH_TIME"] = pd.to_datetime(df["CRASH_TIME"], format="%H:%M")
-df["CRASH_HOUR_MINUTE"] = df["CRASH_TIME"].dt.floor("15T").dt.strftime("%H:%M")
-df["YEAR"] = df["CRASH_DATE"].dt.year
+# df["CRASH_DATE"] = pd.to_datetime(df["CRASH_DATE"])
+# df["CRASH_TIME"] = pd.to_datetime(df["CRASH_TIME"], format="%H:%M")
+# df["CRASH_HOUR_MINUTE"] = df["CRASH_TIME"].dt.floor("15T").dt.strftime("%H:%M")
+# df["YEAR"] = df["CRASH_DATE"].dt.year
 
-time_grouped = (
-    df.groupby(["CRASH_HOUR_MINUTE", "YEAR"]).size().reset_index(name="count")
-)
+# time_grouped = (
+#     df.groupby(["CRASH_HOUR_MINUTE", "YEAR"]).size().reset_index(name="count")
+# )
 
-day_grouped = (
-    df.groupby(["YEAR", df["CRASH_DATE"].dt.date])
-    .size()
-    .reset_index(name="count")
-    .rename(columns={0: "count"})
-)
+# day_grouped = (
+#     df.groupby(["YEAR", df["CRASH_DATE"].dt.date])
+#     .size()
+#     .reset_index(name="count")
+#     .rename(columns={0: "count"})
+# )
 
-day_grouped["CRASH_DATE"] = pd.to_datetime(day_grouped["CRASH_DATE"])
+# day_grouped["CRASH_DATE"] = pd.to_datetime(day_grouped["CRASH_DATE"])
 
 
 @reactive.calc
