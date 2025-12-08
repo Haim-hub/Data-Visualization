@@ -409,11 +409,19 @@ with ui.navset_pill(id="tab"):
                         ) * 100
                         df_grouped["PERCENTAGE"] = df_grouped["PERCENTAGE"].round(1)
 
+                        injury_colors = {
+                            "Not Ejected": "#FFF8DC",
+                            "Trapped": "yellow",
+                            "Partially Ejected": "orange",
+                            "Ejected": "red"
+                        }
+
                         fig = px.bar(
                             df_grouped,
                             x="SAFETY_EQUIPMENT_SHORT",
                             y="PERCENTAGE",
                             color="EJECTION",
+                            color_discrete_map=injury_colors,
                             barmode="stack",
                             hover_data={
                                 "SAFETY_EQUIPMENT_SHORT": False,
@@ -586,12 +594,19 @@ with ui.navset_pill(id="tab"):
                             )
                         )
 
+                        injury_colors = {
+                            "Injured": "orange",
+                            "Unspecified": "yellow",
+                            "Killed": "red"
+                        }
+
                         fig = px.bar(
                             relationship_counts,
                             x="POSITION_IN_VEHICLE",
                             y="Count",
-                            color="POSITION_IN_VEHICLE",
+                            color="PERSON_INJURY",
                             title=f"Relationship Between Position and Injury Status",
+                            color_discrete_map=injury_colors,
                             labels={
                                 "POSITION_IN_VEHICLE": "Position in Vehicle",
                                 "PERSON_INJURY": "Injury Status",
@@ -606,6 +621,7 @@ with ui.navset_pill(id="tab"):
                             paper_bgcolor='rgba(0,0,0,0)',
                             font_color='white',
                             xaxis_tickangle=45,
+                            
                             legend_title_text="Injury Status",
                             yaxis_type="log",
                         )
