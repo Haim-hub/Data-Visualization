@@ -13,6 +13,8 @@ import plotly.graph_objects as go
 from shinyswatch import theme
 
 
+
+
 ui.page_opts(
     title="NYC Motor Vehicle Collisions Dashboard",
     fillable=True,
@@ -44,7 +46,7 @@ with ui.navset_pill(id="tab"):
 
                 @render.text
                 def injury_types():
-                    return year_df()["count"].sum()
+                    return day_grouped[day_grouped["YEAR"] == input.year()]["count"].sum()
 
             with ui.card():
                 ui.input_numeric(
@@ -58,11 +60,11 @@ with ui.navset_pill(id="tab"):
                 @render.plot
                 def heatmap():
                     fig, ax = plt.subplots(figsize=(15, 6), dpi=55)
-                    dates = year_df()["CRASH_DATE"]
-                    values = year_df()["count"]
+                    dates = day_grouped[day_grouped["YEAR"] == input.year()]["CRASH_DATE"]
+                    values = day_grouped[day_grouped["YEAR"] == input.year()]["count"]
 
                     cmap = "YlOrRd"
-                    norm = plt.Normalize(vmin=0, vmax=4500)
+                    norm = plt.Normalize(vmin=0, vmax=300)
 
                     dp.calendar(
                         dates=dates,
@@ -71,7 +73,7 @@ with ui.navset_pill(id="tab"):
                         end_date=f"{input.year()}-12-31",
                         cmap=cmap,
                         vmin=0,
-                        vmax=4500,
+                        vmax=300,
                         day_kws={"color": "white"},
                         month_kws={"color": "white"},
                         ax=ax,
@@ -93,9 +95,8 @@ with ui.navset_pill(id="tab"):
             ui.input_switch("drivers_only", "Show Drivers Only", value=False)
             @render_plotly
             def age_sex_histogram_chart():
-                d = filtered_year_data()
-                
-                d = d.copy()
+                d = df[df["YEAR"] == int(input.year())]
+            
                 
 
                 if input.drivers_only():
@@ -180,7 +181,7 @@ with ui.navset_pill(id="tab"):
                 max_val = max(men_counts.max(), women_counts.max()) if not age_sex_counts.empty else 10
                 limit = max_val * 1.1
 
-                step = max(2000, 1)
+                step = max(150, 1)
                 
                 pos_ticks = list(range(0, int(limit) + step, step))
                 
@@ -197,13 +198,13 @@ with ui.navset_pill(id="tab"):
                     ticksuffix=""
                 )
 
+
                 return fig
             
             @render_plotly
             def age_sex_chart():
-                d = filtered_year_data()
-                
-                d = d.copy()
+                d = df[df["YEAR"] == int(input.year())]
+            
                 
                 if input.drivers_only():
                     d = d[d["POSITION_IN_VEHICLE"] == "Driver"]
@@ -672,7 +673,7 @@ with ui.navset_pill(id="tab"):
 
                     # 3. Add Suffixes
                     df_ped["L"] = df_ped["PED_LOCATION"]
-                    df_ped["A"] = df_ped["PED_ACTION"] + " (Act)"
+                    df_ped["A"] = df_ped["PED_ACTION"]
                     df_ped["R"] = df_ped["PERSON_INJURY"]
 
                     # 4. Create Flows
@@ -874,16 +875,16 @@ with ui.navset_pill(id="tab"):
             ui.p("Developed using Shiny for Python and various data science libraries.")
             ui.p("Data is current as of December 8th 2025.")
 
+            ui.br()
+            ui.h3("Report")
+            ui.p("Download the full technical ", 
+                 ui.a(
+                     "report",
+                     href="https://drive.google.com/file/d/1c3_6mstVUq-P0wMBZzTIacJH3nR8fj1N/view?usp=sharing",
+                     target="_blank"
+                 ),
+                 "."
+            )
+
 ui.include_css(app_dir / "styles.css")
 
-
-
-@reactive.calc
-def year_df():
-    return day_grouped[day_grouped["YEAR"] == input.year()]
-
-@reactive.calc
-def filtered_year_data():
-    """Filters the main dataframe based on the selected year."""
-    selected_year = int(input.year())
-    return df[df["YEAR"] == selected_year].copy()
