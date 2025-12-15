@@ -7,3 +7,5 @@ dayplot
 shinyswatch
 shinywidgets
 plotly-express
+fastparquet
+pyarrow
