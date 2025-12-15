@@ -1,26 +1,35 @@
 from pathlib import Path
 import pandas as pd
-import gc # Garbage collection
+import gc  # Garbage collection
 
 app_dir = Path(__file__).parent
 
 # 1. Load the data
-df_loaded = pd.read_parquet(app_dir / "optimized_data.parquet")
-df = df_loaded.sample(n=300000, random_state=42)
+df = pd.read_parquet(app_dir / "sampled_data.parquet")
+
+# df_loaded = pd.read_parquet(app_dir / "optimized_data.parquet")
+# df = df_loaded.sample(n=600000, random_state=42)
+# df.to_parquet("sampled_data.parquet")
 
 # 2. CRITICAL MEMORY FIX: Convert String columns to Categories
-# Even if they are compact on disk, strings take huge RAM. 
+# Even if they are compact on disk, strings take huge RAM.
 # Categories use integers pointers (tiny).
 cat_cols = [
-    "PERSON_SEX", "PERSON_TYPE", "POSITION_IN_VEHICLE", 
-    "SAFETY_EQUIPMENT", "EJECTION", "PED_LOCATION", 
-    "PED_ACTION", "BODILY_INJURY", "PERSON_INJURY"
+    "PERSON_SEX",
+    "PERSON_TYPE",
+    "POSITION_IN_VEHICLE",
+    "SAFETY_EQUIPMENT",
+    "EJECTION",
+    "PED_LOCATION",
+    "PED_ACTION",
+    "BODILY_INJURY",
+    "PERSON_INJURY",
 ]
 
 for col in cat_cols:
     # Only convert if the column exists and is currently an object (string)
-    if col in df.columns and df[col].dtype == 'object':
-        df[col] = df[col].astype('category')
+    if col in df.columns and df[col].dtype == "object":
+        df[col] = df[col].astype("category")
 
 # 3. OPTIMIZE DATE GROUPING
 # OLD WAY: df["CRASH_DATE"].dt.date creates a Python object for every row (Very Expensive)
