@@ -1,15 +1,11 @@
-import seaborn as sns
-import re
 from faicons import icon_svg
 
-# Import data from shared.py
+
 from shared import app_dir, df, time_grouped, day_grouped
-from shinywidgets import render_widget, render_plotly
+from shinywidgets import render_plotly
 from shiny import reactive
 from shiny.express import input, render, ui
-import matplotlib.ticker as ticker
 import matplotlib.pyplot as plt
-import matplotlib.dates as mdates
 import dayplot as dp
 import pandas as pd
 import plotly.express as px
@@ -63,26 +59,21 @@ with ui.navset_pill(id="tab"):
                 
                 d = d.copy()
                 
-                # Apply Drivers Only filter if switch is on
+
                 if input.drivers_only():
                     d = d[d["POSITION_IN_VEHICLE"] == "Driver"]
                 
                 d["PERSON_AGE"] = pd.to_numeric(d["PERSON_AGE"], errors='coerce')
                 
-                # When dropping NaNs, force a copy so subsequent assignments don't trigger warnings
                 d = d.dropna(subset=["PERSON_AGE"]).copy()
                 
-                # Now safe to convert
                 d["PERSON_AGE"] = d["PERSON_AGE"].astype(int)
                 
-                # Filter Age (1-100) and Sex (M/F)
                 d = d[(d["PERSON_AGE"] >= 1) & (d["PERSON_AGE"] <= 100)]
                 d = d[d["PERSON_SEX"].isin(["M", "F"])]
                 
-                # Group by Age and Sex
                 age_sex_counts = d.groupby(["PERSON_AGE", "PERSON_SEX"]).size().unstack(fill_value=0)
                 
-                # Ensure columns exist
                 if "M" not in age_sex_counts.columns: age_sex_counts["M"] = 0
                 if "F" not in age_sex_counts.columns: age_sex_counts["F"] = 0
                 
@@ -91,10 +82,8 @@ with ui.navset_pill(id="tab"):
                 men_counts = age_sex_counts["M"]
                 women_counts = age_sex_counts["F"]
 
-                # --- PLOTLY CONSTRUCTION ---
                 fig = go.Figure()
 
-                # 1. Women (Right side, Positive)
                 fig.add_trace(go.Bar(
                     y=ages,
                     x=women_counts,
@@ -111,8 +100,6 @@ with ui.navset_pill(id="tab"):
                     hoverinfo='x+y'
                 ))
 
-                # 2. Men (Left side, Negative)
-                # We make values negative for position, but use 'customdata' for hover text
                 fig.add_trace(go.Bar(
                     y=ages,
                     x=-men_counts,
@@ -126,14 +113,14 @@ with ui.navset_pill(id="tab"):
                             width=0.2
                         )
                     ),
-                    customdata=men_counts, # Actual positive counts
+                    customdata=men_counts,
                     hovertemplate='Men: %{customdata}<br>Age: %{y}<extra></extra>'
                 ))
 
                 title_suffix = " (Drivers Only)" if input.drivers_only() else ""
                 fig.update_layout(
                     title=f"Crash Distribution by Age ({input.year()}){title_suffix}",
-                    barmode='overlay', # Overlay allows them to share the row without stacking
+                    barmode='overlay',
                     bargap=1,
                     xaxis=dict(
                         title='Count',
@@ -146,18 +133,16 @@ with ui.navset_pill(id="tab"):
                     yaxis=dict(
                         title='Age',
                         dtick=5,
-                        range=[100, 0] # Reverses the axis: 0 at top, 100 at bottom
+                        range=[100, 0] 
                     ),
                     legend=dict(x=0.8, y=0.9),
                     margin=dict(l=20, r=20, t=50, b=20)
                 )
                 
-                # Optional: Force X-axis to be symmetric
                 max_val = max(men_counts.max(), women_counts.max()) if not age_sex_counts.empty else 10
                 limit = max_val * 1.1
                 fig.update_xaxes(range=[-limit, limit])
 
-                # Fix the negative tick labels on X-axis using standard JS format
                 fig.update_layout(xaxis=dict(ticksuffix=""))
 
                 return fig
@@ -166,10 +151,8 @@ with ui.navset_pill(id="tab"):
             def age_sex_chart():
                 d = filtered_year_data()
                 
-                # --- ROBUST DATA CLEANING ---
                 d = d.copy()
                 
-                # Apply Drivers Only filter if switch is on
                 if input.drivers_only():
                     d = d[d["POSITION_IN_VEHICLE"] == "Driver"]
                 
@@ -177,11 +160,9 @@ with ui.navset_pill(id="tab"):
                 d = d.dropna(subset=["PERSON_AGE"]).copy()
                 d["PERSON_AGE"] = d["PERSON_AGE"].astype(int)
                 
-                # Filter Age (1-100) and Sex (M/F)
                 d = d[(d["PERSON_AGE"] >= 1) & (d["PERSON_AGE"] <= 100)]
                 d = d[d["PERSON_SEX"].isin(["M", "F"])]
 
-                # --- PLOTLY BOXPLOT CONSTRUCTION ---
                 fig = go.Figure()
 
                 fig.add_trace(go.Box(
@@ -196,7 +177,7 @@ with ui.navset_pill(id="tab"):
                     y=d[d["PERSON_SEX"] == "F"]["PERSON_AGE"],
                     name='Women',
                     marker_color='#B36A7A',
-                    boxpoints='outliers', # Only show outlier points to keep it clean
+                    boxpoints='outliers', 
                     showlegend=False
                 ))
 
@@ -224,11 +205,9 @@ with ui.navset_pill(id="tab"):
                     dates = year_df()["CRASH_DATE"]
                     values = year_df()["count"]
 
-                    # Set the colormap and normalization from 0 to 4500
                     cmap = "YlOrRd"
                     norm = plt.Normalize(vmin=0, vmax=4500)
 
-                    # Plot the calendar with the explicit colormap and norm
                     dp.calendar(
                         dates=dates,
                         values=values,
@@ -242,11 +221,9 @@ with ui.navset_pill(id="tab"):
                         ax=ax,
                     )
 
-                    # Create a ScalarMappable with the same cmap and norm
                     sm = plt.cm.ScalarMappable(cmap=cmap, norm=norm)
                     sm.set_array([])
 
-                    # Add the colorbar and adjust its size
                     cbar = fig.colorbar(sm, ax=ax, pad=0.02, fraction=0.006)
                     cbar.ax.yaxis.set_tick_params(color="white")
                     plt.setp(plt.getp(cbar.ax.axes, "yticklabels"), color="white")
@@ -266,7 +243,6 @@ with ui.navset_pill(id="tab"):
                     selected_year = input.year()
                     fig = go.Figure()
 
-                    # -------- OTHER YEARS (static) --------
                     for year in grouped_df["YEAR"].unique():
                         if year == selected_year:
                             continue
@@ -282,10 +258,8 @@ with ui.navset_pill(id="tab"):
                             )
                         )
 
-                    # -------- SELECTED YEAR (animated) --------
                     selected_df = grouped_df[grouped_df["YEAR"] == selected_year]
 
-                    # Frames: progressively reveal the line
                     frames = []
                     for i in range(1, len(selected_df) + 1):
                         frames.append(
@@ -333,7 +307,6 @@ with ui.navset_pill(id="tab"):
                         ]
                     )
 
-                    # Usual layout
                     fig.update_layout(
                         title="Crashes per 15-Minute Interval by Year",
                         xaxis_title="Time of Day",
@@ -503,11 +476,8 @@ with ui.navset_pill(id="tab"):
                         age_groups = ["0-17", "18-24", "25-44", "45-64", "65+"]
                         injury_data = []
 
-                        # --- FIX: Data is already numeric (float) from ETL ---
-                        # We just drop empty values. No need to check .isdigit() anymore.
                         df_clean = df.dropna(subset=["PERSON_AGE"])
                         
-                        # Loop through groups
                         for age_group in age_groups:
                             if age_group == "0-17":
                                 mask = df_clean["PERSON_AGE"] <= 17
@@ -520,10 +490,8 @@ with ui.navset_pill(id="tab"):
                             else:  # "65+"
                                 mask = df_clean["PERSON_AGE"] >= 65
 
-                            # Get the slice of data for this age group
                             group_data = df_clean[mask]
 
-                            # Count Injured vs Killed in this specific group
                             injured_count = len(group_data[group_data["PERSON_INJURY"] == "Injured"])
                             killed_count = len(group_data[group_data["PERSON_INJURY"] == "Killed"])
 
@@ -569,7 +537,6 @@ with ui.navset_pill(id="tab"):
                         return fig
                     
             with ui.layout_column_wrap(fill=True):
-                # Relation chart between position and injury
                 with ui.card(full_screen=True):
                     ui.card_header("Relation between position and injury")
 
@@ -612,13 +579,11 @@ with ui.navset_pill(id="tab"):
                         }
 
                         relationship_counts = relationship_counts.dropna()
-                        # Exclude Driver and Does Not Apply
                         relationship_counts = relationship_counts[
                             ~relationship_counts["POSITION_IN_VEHICLE"].isin(
                                 ["Does Not Apply"]
                             )
                         ]
-                        # Translate them
                         relationship_counts["POSITION_IN_VEHICLE"] = (
                             relationship_counts["POSITION_IN_VEHICLE"].map(
                                 all_positions_unique
