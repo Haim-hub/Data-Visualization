@@ -50,6 +50,44 @@ with ui.navset_pill(id="tab"):
                 ui.input_numeric(
                     "year", "Year input", 2019, min=2012, max=2025, width="auto"
                 )
+
+        with ui.layout_column_wrap(fill=False):
+            with ui.card(full_screen=True):
+                ui.card_header("Crashes per day heatmap")
+
+                @render.plot
+                def heatmap():
+                    fig, ax = plt.subplots(figsize=(15, 6), dpi=55)
+                    dates = year_df()["CRASH_DATE"]
+                    values = year_df()["count"]
+
+                    cmap = "YlOrRd"
+                    norm = plt.Normalize(vmin=0, vmax=4500)
+
+                    dp.calendar(
+                        dates=dates,
+                        values=values,
+                        start_date=f"{input.year()}-01-01",
+                        end_date=f"{input.year()}-12-31",
+                        cmap=cmap,
+                        vmin=0,
+                        vmax=4500,
+                        day_kws={"color": "white"},
+                        month_kws={"color": "white"},
+                        ax=ax,
+                    )
+
+                    sm = plt.cm.ScalarMappable(cmap=cmap, norm=norm)
+                    sm.set_array([])
+
+                    cbar = fig.colorbar(sm, ax=ax, pad=0.02, fraction=0.006)
+                    cbar.ax.yaxis.set_tick_params(color="white")
+                    plt.setp(plt.getp(cbar.ax.axes, "yticklabels"), color="white")
+
+                    fig.set_facecolor("#2d2d2d")
+                    ax.set_facecolor("#2d2d2d")
+                    return fig
+
         with ui.card(full_screen=True):
             ui.card_header("Crashes by Age and Gender")
             ui.input_switch("drivers_only", "Show Drivers Only", value=False)
@@ -141,9 +179,23 @@ with ui.navset_pill(id="tab"):
                 
                 max_val = max(men_counts.max(), women_counts.max()) if not age_sex_counts.empty else 10
                 limit = max_val * 1.1
-                fig.update_xaxes(range=[-limit, limit])
 
-                fig.update_layout(xaxis=dict(ticksuffix=""))
+                step = max(2000, 1)
+                
+                pos_ticks = list(range(0, int(limit) + step, step))
+                
+                tick_vals = sorted([-t for t in pos_ticks if t != 0] + pos_ticks)
+                
+                tick_text = [str(abs(x)) for x in tick_vals]
+
+                fig.update_xaxes(
+                    range=[-limit, limit],
+                    tickmode='array',
+                    tickvals=tick_vals,
+                    ticktext=tick_text,
+                    title='Count',
+                    ticksuffix=""
+                )
 
                 return fig
             
@@ -195,43 +247,6 @@ with ui.navset_pill(id="tab"):
 
                 return fig
     
-        with ui.layout_column_wrap(fill=False):
-            with ui.card(full_screen=True):
-                ui.card_header("Crashes per day heatmap")
-
-                @render.plot
-                def heatmap():
-                    fig, ax = plt.subplots(figsize=(15, 6), dpi=55)
-                    dates = year_df()["CRASH_DATE"]
-                    values = year_df()["count"]
-
-                    cmap = "YlOrRd"
-                    norm = plt.Normalize(vmin=0, vmax=4500)
-
-                    dp.calendar(
-                        dates=dates,
-                        values=values,
-                        start_date=f"{input.year()}-01-01",
-                        end_date=f"{input.year()}-12-31",
-                        cmap=cmap,
-                        vmin=0,
-                        vmax=4500,
-                        day_kws={"color": "white"},
-                        month_kws={"color": "white"},
-                        ax=ax,
-                    )
-
-                    sm = plt.cm.ScalarMappable(cmap=cmap, norm=norm)
-                    sm.set_array([])
-
-                    cbar = fig.colorbar(sm, ax=ax, pad=0.02, fraction=0.006)
-                    cbar.ax.yaxis.set_tick_params(color="white")
-                    plt.setp(plt.getp(cbar.ax.axes, "yticklabels"), color="white")
-
-                    fig.set_facecolor("#2d2d2d")
-                    ax.set_facecolor("#2d2d2d")
-                    return fig
-
         with ui.layout_column_wrap(fill=False):
             with ui.card(full_screen=True):
                 ui.card_header("Crashes per Hour and Minute (Animated)")
