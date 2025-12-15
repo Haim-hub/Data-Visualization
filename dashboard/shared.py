@@ -3,7 +3,10 @@ import pandas as pd
 
 app_dir = Path(__file__).parent
 
-df = pd.read_parquet(app_dir / "optimized_data.parquet")
+# FAST LOAD: Reads the pre-processed Parquet file
+# (Contains CRASH_DATE, YEAR, CRASH_HOUR_MINUTE already converted)
+df_loaded = pd.read_parquet(app_dir / "optimized_data.parquet")
+df = df_loaded.sample(n=300000, random_state=42)
 
 
 time_grouped = (
